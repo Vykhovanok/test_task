@@ -15,6 +15,7 @@ export class AppConfigService {
 
   readonly clientOrigin = process.env.CLIENT_ORIGIN ?? 'http://localhost:3001';
   readonly port = this.readPositiveInt('PORT', 3000);
+  readonly redisUrl = process.env.REDIS_URL ?? null;
   readonly redisHost = process.env.REDIS_HOST ?? 'localhost';
   readonly redisPort = this.readPositiveInt('REDIS_PORT', 6379);
   readonly trustProxy = process.env.TRUST_PROXY === 'true';
