@@ -13,7 +13,7 @@ export class AppConfigService {
   private readonly nodeEnv = this.resolveNodeEnv();
   private readonly jwtSecret = this.resolveJwtSecret();
 
-  readonly clientOrigin = process.env.CLIENT_ORIGIN ?? 'http://localhost:3001';
+  readonly clientOrigin = this.resolveClientOrigin();
   readonly port = this.readPositiveInt('PORT', 3000);
   readonly redisUrl = this.resolveRedisUrl();
   readonly redisHost = this.resolveRedisHost();
@@ -102,6 +102,30 @@ export class AppConfigService {
       this.logger.warn('REDIS_URL is set but could not be parsed.');
       return null;
     }
+  }
+
+  private resolveClientOrigin(): string {
+    const origin = process.env.CLIENT_ORIGIN?.trim();
+
+    if (origin) {
+      return origin;
+    }
+
+    if (this.nodeEnv === 'production') {
+      throw new Error(
+        'CLIENT_ORIGIN is required in production. Refusing to boot with an insecure CORS configuration.',
+      );
+    }
+
+    if (this.nodeEnv === 'test') {
+      return 'http://localhost:3001';
+    }
+
+    this.logger.warn(
+      'CLIENT_ORIGIN is not set. Using http://localhost:3001 for local development.',
+    );
+
+    return 'http://localhost:3001';
   }
 
   private resolveNodeEnv(): RuntimeEnvironment {
