@@ -1,0 +1,9 @@
+{
+  "spec": "test/**/*.spec.ts",
+  "require": [
+    "ts-node/register",
+    "tsconfig-paths/register"
+  ],
+  "timeout": 10000,
+  "exit": true
+}

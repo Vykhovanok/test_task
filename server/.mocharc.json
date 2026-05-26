@@ -1,0 +1,6 @@
+{
+  "spec": "test/unit/**/*.spec.ts",
+  "require": ["ts-node/register"],
+  "timeout": 10000,
+  "exit": true
+}

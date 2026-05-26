@@ -1,0 +1,39 @@
+{
+  "name": "client",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --port 3001",
+    "build": "next build",
+    "start": "next start --port 3001",
+    "lint": "eslint",
+    "test": "TS_NODE_PROJECT=tsconfig.test.json mocha --config .mocharc.json",
+    "test:cov": "c8 --all --include src/**/*.ts --reporter text --reporter html npm test"
+  },
+  "dependencies": {
+    "@tanstack/react-virtual": "^3.13.18",
+    "@tanstack/react-query": "^5.100.14",
+    "axios": "^1.13.2",
+    "next": "16.2.6",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "zustand": "^5.0.13"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/chai": "^5.2.3",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "c8": "^11.0.0",
+    "chai": "^6.2.2",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.6",
+    "mocha": "^11.7.6",
+    "tailwindcss": "^4",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5"
+  }
+}

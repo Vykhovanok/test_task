@@ -1,0 +1,143 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ResourceType {
+  FILE
+  FOLDER
+}
+
+enum Visibility {
+  PRIVATE
+  PUBLIC
+}
+
+enum PermissionRole {
+  VIEWER
+  EDITOR
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+}
+
+enum ProcessingStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model User {
+  id               String               @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  email            String               @unique
+  name             String
+  passwordHash     String
+  ownedResources   Resource[]           @relation("OwnedResources")
+  permissions      ResourcePermission[]
+  invitations      ShareInvitation[]    @relation("CreatedInvitations")
+  publicLinks      PublicLink[]         @relation("CreatedPublicLinks")
+  authSessions     AuthSession[]
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+}
+
+model AuthSession {
+  id         String    @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  userId     String    @db.Uuid
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Resource {
+  id                  String               @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  name                String
+  type                ResourceType
+  ownerId             String               @db.Uuid
+  parentId            String?              @db.Uuid
+  visibility          Visibility           @default(PRIVATE)
+  mimeType            String?
+  originalFilename    String?
+  storagePath         String?
+  compressedPath      String?
+  size                Int?
+  sortOrder           Int                  @default(0)
+  processingStatus    ProcessingStatus?
+  owner               User                 @relation("OwnedResources", fields: [ownerId], references: [id], onDelete: Cascade)
+  parent              Resource?            @relation("ResourceHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children            Resource[]           @relation("ResourceHierarchy")
+  permissions         ResourcePermission[]
+  invitations         ShareInvitation[]
+  publicLinks         PublicLink[]
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  @@index([ownerId])
+  @@index([parentId])
+  @@index([type])
+  @@index([visibility])
+  @@index([parentId, sortOrder])
+  @@index([processingStatus, updatedAt])
+  @@index([name])
+}
+
+model ResourcePermission {
+  id                String           @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  resourceId        String           @db.Uuid
+  userId            String           @db.Uuid
+  role              PermissionRole
+  shareInvitationId String?          @db.Uuid
+  resource          Resource         @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shareInvitation   ShareInvitation? @relation(fields: [shareInvitationId], references: [id], onDelete: SetNull)
+  createdAt         DateTime         @default(now())
+
+  @@unique([resourceId, userId])
+  @@index([userId])
+  @@index([shareInvitationId])
+}
+
+model ShareInvitation {
+  id              String               @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  resourceId      String               @db.Uuid
+  email           String
+  role            PermissionRole
+  createdByUserId String               @db.Uuid
+  status          InvitationStatus     @default(PENDING)
+  resource        Resource             @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  createdByUser   User                 @relation("CreatedInvitations", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  permissions     ResourcePermission[]
+  createdAt       DateTime             @default(now())
+
+  @@unique([resourceId, email])
+  @@index([email])
+  @@index([createdByUserId])
+}
+
+model PublicLink {
+  id              String   @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  resourceId      String   @db.Uuid
+  tokenHash       String   @unique
+  isActive        Boolean  @default(true)
+  expiresAt       DateTime
+  createdByUserId String   @db.Uuid
+  resource        Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  createdByUser   User     @relation("CreatedPublicLinks", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+
+  @@index([resourceId])
+  @@index([createdByUserId])
+  @@index([resourceId, isActive])
+}
