@@ -1,26 +1,18 @@
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import Redis from 'ioredis';
 import { AppConfigService } from '../../config/app-config.service';
+import { createRedisClient } from './redis-client.util';
 
 @Injectable()
 export class RedisService implements OnModuleDestroy {
   readonly client: Redis;
 
   constructor(private readonly appConfigService: AppConfigService) {
-    const redisUrl = this.appConfigService.redisUrl;
-    this.client = redisUrl
-      ? new Redis(redisUrl, {
-          maxRetriesPerRequest: 2,
-          enableOfflineQueue: false,
-          lazyConnect: true,
-        })
-      : new Redis({
-          host: this.appConfigService.redisHost,
-          port: this.appConfigService.redisPort,
-          maxRetriesPerRequest: 2,
-          enableOfflineQueue: false,
-          lazyConnect: true,
-        });
+    this.client = createRedisClient(this.appConfigService, {
+      maxRetriesPerRequest: 2,
+      enableOfflineQueue: false,
+      lazyConnect: true,
+    });
   }
 
   async ensureConnected(): Promise<void> {

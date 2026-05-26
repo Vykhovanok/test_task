@@ -1,15 +1,14 @@
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import Redis from 'ioredis';
 import { AppConfigService } from '../../config/app-config.service';
+import { createRedisClient } from '../redis/redis-client.util';
 
 @Injectable()
 export class RedisRateLimitService implements OnModuleDestroy {
   private readonly redis: Redis;
 
   constructor(private readonly appConfigService: AppConfigService) {
-    this.redis = new Redis({
-      host: this.appConfigService.redisHost,
-      port: this.appConfigService.redisPort,
+    this.redis = createRedisClient(this.appConfigService, {
       maxRetriesPerRequest: 1,
       enableOfflineQueue: false,
       lazyConnect: true,

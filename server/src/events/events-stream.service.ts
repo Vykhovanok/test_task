@@ -2,6 +2,7 @@ import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { MessageEvent } from '@nestjs/common';
 import Redis from 'ioredis';
 import { Observable } from 'rxjs';
+import { createRedisClient } from '../common/redis/redis-client.util';
 import { AppConfigService } from '../config/app-config.service';
 import { ResourceEventsService } from './resource-events.service';
 
@@ -16,9 +17,7 @@ export class EventsStreamService implements OnModuleDestroy {
 
   createUserStream(userId: string): Observable<MessageEvent> {
     return new Observable<MessageEvent>((subscriber) => {
-      const redisSubscriber = new Redis({
-        host: this.appConfigService.redisHost,
-        port: this.appConfigService.redisPort,
+      const redisSubscriber = createRedisClient(this.appConfigService, {
         maxRetriesPerRequest: 2,
         enableOfflineQueue: false,
       });
