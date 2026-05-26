@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
@@ -9,6 +9,10 @@ import { AppConfigService } from './config/app-config.service';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const appConfigService = app.get(AppConfigService);
+  const bootstrapLogger = new Logger('Bootstrap');
+  bootstrapLogger.log(
+    `Redis target ${appConfigService.redisHost}:${appConfigService.redisPort}`,
+  );
 
   if (appConfigService.trustProxy) {
     app.getHttpAdapter().getInstance().set('trust proxy', 1);

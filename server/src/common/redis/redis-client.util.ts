@@ -1,12 +1,22 @@
 import Redis, { RedisOptions } from 'ioredis';
 import { AppConfigService } from '../../config/app-config.service';
 
+function resolveRedisUrl(appConfig: AppConfigService): string | null {
+  const direct = process.env.REDIS_URL?.trim();
+  if (direct) {
+    return direct;
+  }
+
+  return appConfig.redisUrl;
+}
+
 export function createRedisClient(
   appConfig: AppConfigService,
   options?: RedisOptions,
 ): Redis {
-  if (appConfig.redisUrl) {
-    return new Redis(appConfig.redisUrl, options ?? {});
+  const redisUrl = resolveRedisUrl(appConfig);
+  if (redisUrl) {
+    return new Redis(redisUrl, options ?? {});
   }
 
   return new Redis({
@@ -21,8 +31,9 @@ export function getBullMqConnection(appConfig: AppConfigService): {
   port: number;
   password?: string;
 } {
-  if (appConfig.redisUrl) {
-    const url = new URL(appConfig.redisUrl);
+  const redisUrl = resolveRedisUrl(appConfig);
+  if (redisUrl) {
+    const url = new URL(redisUrl);
 
     return {
       host: url.hostname,

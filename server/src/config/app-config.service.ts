@@ -15,9 +15,9 @@ export class AppConfigService {
 
   readonly clientOrigin = process.env.CLIENT_ORIGIN ?? 'http://localhost:3001';
   readonly port = this.readPositiveInt('PORT', 3000);
-  readonly redisUrl = process.env.REDIS_URL ?? null;
-  readonly redisHost = process.env.REDIS_HOST ?? 'localhost';
-  readonly redisPort = this.readPositiveInt('REDIS_PORT', 6379);
+  readonly redisUrl = this.resolveRedisUrl();
+  readonly redisHost = this.resolveRedisHost();
+  readonly redisPort = this.resolveRedisPort();
   readonly trustProxy = process.env.TRUST_PROXY === 'true';
   readonly enableSwagger =
     process.env.ENABLE_SWAGGER === 'true' || this.isDevelopmentLike;
@@ -52,6 +52,56 @@ export class AppConfigService {
 
   getJwtSecret(): string {
     return this.jwtSecret;
+  }
+
+  private resolveRedisUrl(): string | null {
+    const value = process.env.REDIS_URL?.trim();
+    return value ? value : null;
+  }
+
+  private resolveRedisHost(): string {
+    const fromEnv = process.env.REDIS_HOST?.trim();
+    if (fromEnv) {
+      return fromEnv;
+    }
+
+    const parsed = this.parseRedisUrl();
+    if (parsed) {
+      return parsed.hostname;
+    }
+
+    return 'localhost';
+  }
+
+  private resolveRedisPort(): number {
+    const fromEnv = process.env.REDIS_PORT?.trim();
+    if (fromEnv) {
+      const parsed = Number(fromEnv);
+      if (Number.isFinite(parsed) && parsed > 0) {
+        return parsed;
+      }
+    }
+
+    const parsed = this.parseRedisUrl();
+    if (parsed) {
+      return Number(parsed.port || 6379);
+    }
+
+    return 6379;
+  }
+
+  private parseRedisUrl(): URL | null {
+    const redisUrl = this.resolveRedisUrl();
+    if (!redisUrl) {
+      return null;
+    }
+
+    try {
+      return new URL(redisUrl);
+    } catch {
+      this.logger.warn('REDIS_URL is set but could not be parsed.');
+      return null;
+    }
   }
 
   private resolveNodeEnv(): RuntimeEnvironment {
