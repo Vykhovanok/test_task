@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { HealthController } from './health.controller';
 import { AuthModule } from './auth/auth.module';
 import { ObservabilityModule } from './common/observability/observability.module';
 import { RedisModule } from './common/redis/redis.module';
@@ -13,6 +14,7 @@ import { StorageModule } from './storage/storage.module';
 import { UploadsModule } from './uploads/uploads.module';
 
 @Module({
+  controllers: [HealthController],
   imports: [
     AppConfigModule,
     RedisModule,
