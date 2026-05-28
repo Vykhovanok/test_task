@@ -13,7 +13,8 @@ export class AppConfigService {
   private readonly nodeEnv = this.resolveNodeEnv();
   private readonly jwtSecret = this.resolveJwtSecret();
 
-  readonly clientOrigin = this.resolveClientOrigin();
+  readonly clientOrigins = this.resolveClientOrigins();
+  readonly clientOrigin = this.clientOrigins[0];
   readonly port = this.readPositiveInt('PORT', 3000);
   readonly redisUrl = this.resolveRedisUrl();
   readonly redisHost = this.resolveRedisHost();
@@ -40,7 +41,7 @@ export class AppConfigService {
     publicLinks: this.readRateLimit('PUBLIC_LINK_RATE_LIMIT', 60_000, 120),
   };
 
-  readonly runWorkers = process.env.RUN_WORKERS !== 'false';
+  readonly runWorkers = this.resolveRunWorkers();
 
   get runtimeEnvironment(): RuntimeEnvironment {
     return this.nodeEnv;
@@ -104,28 +105,57 @@ export class AppConfigService {
     }
   }
 
-  private resolveClientOrigin(): string {
-    const origin = process.env.CLIENT_ORIGIN?.trim();
+  isClientOriginAllowed(origin: string | undefined): boolean {
+    if (!origin) {
+      return true;
+    }
 
-    if (origin) {
-      return origin;
+    return this.clientOrigins.includes(origin);
+  }
+
+  private resolveClientOrigins(): string[] {
+    const configured = this.normalizeOrigin(process.env.CLIENT_ORIGIN);
+
+    if (configured) {
+      return [configured];
     }
 
     if (this.nodeEnv === 'production') {
-      throw new Error(
-        'CLIENT_ORIGIN is required in production. Refusing to boot with an insecure CORS configuration.',
+      this.logger.warn(
+        'CLIENT_ORIGIN is not set. Allowing https://test-task-client.onrender.com for deployment.',
       );
+      return ['https://test-task-client.onrender.com'];
     }
 
     if (this.nodeEnv === 'test') {
-      return 'http://localhost:3001';
+      return ['http://localhost:3001'];
     }
 
     this.logger.warn(
       'CLIENT_ORIGIN is not set. Using http://localhost:3001 for local development.',
     );
 
-    return 'http://localhost:3001';
+    return ['http://localhost:3001'];
+  }
+
+  private normalizeOrigin(value: string | undefined): string | null {
+    const trimmed = value?.trim().replace(/^['"]|['"]$/g, '').replace(/\/$/, '');
+
+    return trimmed ? trimmed : null;
+  }
+
+  private resolveRunWorkers(): boolean {
+    const raw = process.env.RUN_WORKERS?.trim().toLowerCase();
+
+    if (raw === 'true') {
+      return true;
+    }
+
+    if (raw === 'false') {
+      return false;
+    }
+
+    return this.nodeEnv !== 'production';
   }
 
   private resolveNodeEnv(): RuntimeEnvironment {

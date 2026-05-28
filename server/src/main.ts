@@ -22,7 +22,14 @@ async function bootstrap() {
   app.use(cookieParser());
 
   app.enableCors({
-    origin: appConfigService.clientOrigin,
+    origin: (origin, callback) => {
+      if (appConfigService.isClientOriginAllowed(origin)) {
+        callback(null, origin ?? appConfigService.clientOrigin);
+        return;
+      }
+
+      callback(new Error(`Origin ${origin ?? 'unknown'} is not allowed by CORS.`));
+    },
     credentials: true,
     methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
