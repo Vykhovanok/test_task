@@ -17,9 +17,11 @@ export class EventsStreamService implements OnModuleDestroy {
 
   createUserStream(userId: string): Observable<MessageEvent> {
     return new Observable<MessageEvent>((subscriber) => {
+      let disposed = false;
       const redisSubscriber = createRedisClient(this.appConfigService, {
-        maxRetriesPerRequest: 2,
+        maxRetriesPerRequest: null,
         enableOfflineQueue: false,
+        lazyConnect: true,
       });
 
       const channel = this.resourceEventsService.userChannel(userId);
@@ -33,15 +35,37 @@ export class EventsStreamService implements OnModuleDestroy {
         });
       };
 
-      void redisSubscriber.subscribe(channel).then(() => {
-        subscriber.next({
-          data: JSON.stringify({ type: 'connected' }),
-        });
-      });
+      const setup = async (): Promise<void> => {
+        try {
+          if (redisSubscriber.status !== 'ready') {
+            await redisSubscriber.connect();
+          }
 
-      redisSubscriber.on('message', handleMessage);
+          if (disposed) {
+            return;
+          }
+
+          await redisSubscriber.subscribe(channel);
+
+          if (disposed) {
+            return;
+          }
+
+          redisSubscriber.on('message', handleMessage);
+          subscriber.next({
+            data: JSON.stringify({ type: 'connected' }),
+          });
+        } catch (error) {
+          if (!disposed) {
+            subscriber.error(error);
+          }
+        }
+      };
+
+      void setup();
 
       return () => {
+        disposed = true;
         redisSubscriber.off('message', handleMessage);
         void redisSubscriber.unsubscribe(channel).finally(() => {
           void redisSubscriber.quit();
